@@ -7,7 +7,7 @@ from sklearn.cluster import AgglomerativeClustering
 # -------------------------------
 # App Title
 # -------------------------------
-st.title("Customer Segmentation using Hierarchical Clustering App")
+st.title("Customer Segmentation App")
 
 # -------------------------------
 # Load Dataset
@@ -84,5 +84,6 @@ if st.button("Predict Cluster"):
     ax.set_title("Customer Segmentation")
 
     st.pyplot(fig)
+
 
 
