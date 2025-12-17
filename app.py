@@ -1,45 +1,87 @@
 import streamlit as st
 import pandas as pd
-import joblib
+import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.cluster import AgglomerativeClustering
-import matplotlib.pyplot as plt
 
+# -------------------------------
+# App Title
+# -------------------------------
 st.title("Customer Segmentation using Hierarchical Clustering")
 
-# Upload dataset
-uploaded_file = st.file_uploader("Upload Customer CSV file", type="csv")
+# -------------------------------
+# Load Dataset
+# -------------------------------
+df = pd.read_csv("Mall_Customers.csv")
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.write("Dataset Preview:", df.head())
+# -------------------------------
+# User Input Section
+# -------------------------------
+st.header("Enter New Customer Details")
 
+gender = st.selectbox("Gender", ["Male", "Female"])
+age = st.number_input("Age", min_value=1, max_value=100, value=30)
+income = st.number_input("Annual Income (k$)", min_value=1, max_value=200, value=50)
+spending = st.number_input("Spending Score (1-100)", min_value=1, max_value=100, value=50)
+
+if st.button("Predict Cluster"):
+
+    # -------------------------------
     # Preprocessing
-    df = df.drop("CustomerID", axis=1)
+    # -------------------------------
+    df_model = df.drop("CustomerID", axis=1)
 
+    # Encode Gender
     le = LabelEncoder()
-    df["Genre"] = le.fit_transform(df["Genre"])
+    df_model["Genre"] = le.fit_transform(df_model["Genre"])
 
+    # Convert user input
+    user_gender = 1 if gender == "Male" else 0
+    new_customer = pd.DataFrame([[user_gender, age, income, spending]],
+        columns=df_model.columns
+    )
+
+    # Combine old + new data
+    final_data = pd.concat([df_model, new_customer], ignore_index=True)
+
+    # Scaling
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(df)
+    X_scaled = scaler.fit_transform(final_data)
 
-    # Clustering
+    # -------------------------------
+    # Hierarchical Clustering
+    # -------------------------------
     hc = AgglomerativeClustering(n_clusters=5, linkage="ward")
     labels = hc.fit_predict(X_scaled)
 
-    df["Cluster"] = labels
+    final_data["Cluster"] = labels
 
-    st.write("Clustered Data:", df.head())
+    # Get cluster of new customer
+    new_customer_cluster = final_data.iloc[-1]["Cluster"]
 
+    st.success(f"New Customer belongs to Cluster: {new_customer_cluster}")
+
+    # -------------------------------
     # Visualization
+    # -------------------------------
+    st.subheader("Cluster Visualization")
+
     fig, ax = plt.subplots()
     ax.scatter(
-        df["Annual Income (k$)"],
-        df["Spending Score (1-100)"],
-        c=df["Cluster"]
+        final_data["Annual Income (k$)"],
+        final_data["Spending Score (1-100)"],
+        c=final_data["Cluster"]
     )
-    ax.set_xlabel("Annual Income")
+
+    # Highlight new customer
+    ax.scatter(
+        income, spending,
+        s=200, marker="X"
+    )
+
+    ax.set_xlabel("Annual Income (k$)")
     ax.set_ylabel("Spending Score")
     ax.set_title("Customer Segmentation")
 
     st.pyplot(fig)
+
